@@ -10,75 +10,70 @@ Reads one expression per line from a text file and writes a four line block
 (Input, Tree, Tokens, Result) for each one into output.txt .
 """
 
-DIGITS = "0123456789"
-OPERATORS = "+-*/%^"
-
-def format_number(value):
-    """Whole numbers print without a decimal point, the rest round to 4 places."""
-    rounded = round(float(value), 4)
-    if rounded == 0:
-        rounded = 0.0
-    if rounded.is_integer():
-        return str(int(rounded))
-    return f"{rounded:.4f}".rstrip("0").rstrip(".")
-
-
-def read_number(text, start):
-    """Read digits, then an optional dot followed by more digits."""
-    index = start
-    while index < len(text) and text[index] in DIGITS:
-        index += 1
-
-    if index < len(text) and text[index] == ".":
-        index += 1
-        if index >= len(text) or text[index] not in DIGITS:
-            raise ValueError("a dot must be followed by a digit")
-        while index < len(text) and text[index] in DIGITS:
-            index += 1
-
-    return float(text[start:index]), index
-
-
-def tokenise(expression):
-    """Turn the expression into a list of (type, value) pairs ending with END."""
+TOKEN_TYPES = {
+    "+": "OP",
+    "-": "OP",
+    "*": "OP",
+    "/": "OP",
+    "%": "OP",
+    "^": "OP",
+    "(": "LPAREN",
+    ")": "RPAREN"
+}
+ 
+def tokenize_expression(expression):
     tokens = []
-    index = 0
-
-    while index < len(expression):
-        character = expression[index]
-
-        if character in " \t":
-            index += 1
-        elif character in DIGITS:
-            value, index = read_number(expression, index)
-            tokens.append(("NUM", value))
-        elif character in OPERATORS:
-            tokens.append(("OP", character))
-            index += 1
-        elif character == "(":
-            tokens.append(("LPAREN", "("))
-            index += 1
-        elif character == ")":
-            tokens.append(("RPAREN", ")"))
-            index += 1
+    position = 0
+ 
+    while position < len(expression):
+        character = expression[position]
+ 
+        if character.isspace():
+            position += 1
+ 
+        elif character.isdigit():
+            number = ""
+ 
+            while position < len(expression) and expression[position].isdigit():
+                number += expression[position]
+                position += 1
+ 
+            tokens.append(("NUM", number))
+ 
+        elif character in TOKEN_TYPES:
+            tokens.append((TOKEN_TYPES[character], character))
+            position += 1
+ 
         else:
-            raise ValueError("bad character: " + character)
-
-    tokens.append(("END", None))
+            return "ERROR"
+ 
+    tokens.append(("END", ""))
     return tokens
-
-
-def format_tokens(tokens):
-    """Build the tokens line, e.g. [NUM:3] [OP:+] [NUM:5] [END]"""
-    parts = []
-    for token_type, value in tokens:
-        if token_type == "END":
-            parts.append("[END]")
-        elif token_type == "NUM":
-            parts.append("[NUM:" + format_number(value) + "]")
-        else:
-            parts.append("[" + token_type + ":" + value + "]")
-    return " ".join(parts)
-
-
-print(format_tokens(tokenise("3.5 * (5.5-4)")))
+ 
+def is_operator(tokens, position, operators):
+    if position >= len(tokens):
+        return False
+ 
+    if tokens[position][0] == "OP" and tokens[position][1] in operators:
+        return True
+ 
+    return False
+ 
+ 
+def parse_number_or_parentheses(tokens, position):
+    token_type, value = tokens[position]
+ 
+    if token_type == "NUM":
+        return float(value), position + 1
+ 
+    if token_type == "LPAREN":
+        tree, position = parse_addition_subtraction(tokens, position + 1)
+ 
+        if tree == "ERROR":
+            return "ERROR", position
+ 
+        if position < len(tokens) and tokens[position][0] == "RPAREN":
+            return tree, position + 1
+ 
+    return "ERROR", position
+ 
