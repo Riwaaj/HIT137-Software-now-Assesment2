@@ -76,4 +76,98 @@ def parse_number_or_parentheses(tokens, position):
             return tree, position + 1
  
     return "ERROR", position
+def parse_exponent(tokens, position):
+    left, position = parse_number_or_parentheses(tokens, position)
+ 
+    if left == "ERROR":
+        return "ERROR", position
+ 
+    if is_operator(tokens, position, ("^",)):
+        right, position = parse_exponent(tokens, position + 1)
+ 
+        if right == "ERROR":
+            return "ERROR", position
+ 
+        left = ("^", left, right)
+ 
+    return left, position
+ 
+ 
+def parse_negative(tokens, position):
+    if is_operator(tokens, position, ("+",)):
+        return "ERROR", position
+ 
+    if is_operator(tokens, position, ("-",)):
+        value, position = parse_negative(tokens, position + 1)
+ 
+        if value == "ERROR":
+            return "ERROR", position
+ 
+        return ("neg", value), position
+ 
+    return parse_exponent(tokens, position)
+ 
+ 
+def parse_multiplication(tokens, position):
+    left, position = parse_negative(tokens, position)
+ 
+    if left == "ERROR":
+        return "ERROR", position
+ 
+    while position < len(tokens):
+ 
+        if is_operator(tokens, position, ("*", "/", "%")):
+            operator = tokens[position][1]
+ 
+            right, position = parse_negative(tokens, position + 1)
+ 
+            if right == "ERROR":
+                return "ERROR", position
+ 
+            left = (operator, left, right)
+ 
+        elif tokens[position][0] == "NUM":
+            right, position = parse_negative(tokens, position)
+ 
+            if right == "ERROR":
+                return "ERROR", position
+ 
+            left = ("*", left, right)
+ 
+        elif tokens[position][0] == "LPAREN":
+            right, position = parse_negative(tokens, position)
+ 
+            if right == "ERROR":
+                return "ERROR", position
+ 
+            left = ("*", left, right)
+ 
+        else:
+            break
+ 
+    return left, position
+ 
+ 
+def parse_addition_subtraction(tokens, position):
+    left, position = parse_multiplication(tokens, position)
+ 
+    if left == "ERROR":
+        return "ERROR", position
+ 
+    while position < len(tokens):
+ 
+        if is_operator(tokens, position, ("+", "-")):
+            operator = tokens[position][1]
+ 
+            right, position = parse_multiplication(tokens, position + 1)
+ 
+            if right == "ERROR":
+                return "ERROR", position
+ 
+            left = (operator, left, right)
+ 
+        else:
+            break
+ 
+    return left, position
  
