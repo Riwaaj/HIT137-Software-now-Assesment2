@@ -70,7 +70,45 @@ def encrypt_file(shift1: int, shift2: int, input_path: str, output_path: str) ->
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(encrypted_text)
-        
+
+def decrypt_file(shift1: int, shift2: int, input_path: str, output_path: str) -> None:
+    """Read the encrypted file, decrypt it, and save the result to output_path."""
+    with open(input_path, "r", encoding="utf-8") as f:
+        text = f.read()
+    decrypted_chars = [decrypt_char(c, shift1, shift2) for c in text]
+    decrypted_text = "".join(decrypted_chars)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(decrypted_text)
+    print("Decrypted", input_path, "into", output_path)
+ 
+ 
+def verify_files(original_path: str, decrypted_path: str) -> bool:
+    """Compare the original and decrypted files and report the outcome."""
+    with open(original_path, "r", encoding="utf-8") as f:
+        original = f.read()
+    with open(decrypted_path, "r", encoding="utf-8") as f:
+        decrypted = f.read()
+ 
+    if original == decrypted:
+        print("Decryption successful: the files match.")
+        return True
+ 
+    print("Decryption failed: the files do not match.")
+    for position in range(min(len(original), len(decrypted))):
+        if original[position] != decrypted[position]:
+            print("First difference at character", position)
+            break
+    return False
+ 
+ 
+def ask_for_shift(name: str) -> int:
+    """Keep asking until the user types a whole number that is zero or more."""
+    while True:
+        answer = input("Enter " + name + " (non-negative integer): ").strip()
+        if answer.isdigit():
+            return int(answer)
+        print("Please enter a whole number that is zero or more.")
+ 
 
 
 if __name__ == "__main__":
