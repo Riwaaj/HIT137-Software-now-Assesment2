@@ -4,11 +4,10 @@ RIWAJ SHRESTHA
 SAWAN GURUNG
 JUNG-CHUAN CHIANG
 
-Question 2 - Expression evaluator using recursive descent parsing.
+Question 2 - Expression evaluator using recursive descent parsing
 
-Reads one expression per line from a text file and writes a four line block
-(Input, Tree, Tokens, Result) for each one into output.txt .
 """
+import os 
 
 TOKEN_TYPES = {
     "+": "OP",
@@ -207,3 +206,120 @@ def calculate_tree(tree):
 
     raise Exception("unknown operator")
 
+def format_number(number):
+    if number.is_integer():
+        return str(int(number))
+ 
+    return str(number)
+ 
+ 
+def make_tree_string(tree):
+    if isinstance(tree, (int, float)):
+        return format_number(tree)
+ 
+    if tree[0] == "neg":
+        return "(neg " + make_tree_string(tree[1]) + ")"
+ 
+    return (
+        "(" + tree[0] + " "
+        + make_tree_string(tree[1]) + " "
+        + make_tree_string(tree[2]) + ")"
+    )
+ 
+ 
+def make_token_string(tokens):
+    if tokens == "ERROR":
+        return "ERROR"
+ 
+    token_list = []
+ 
+    for token_type, value in tokens:
+        if token_type == "END":
+            token_list.append("[END]")
+        else:
+            token_list.append("[" + token_type + ":" + value + "]")
+ 
+    return " ".join(token_list)
+ 
+ 
+def format_result(result):
+    if result == "ERROR":
+        return "ERROR"
+ 
+    if result.is_integer():
+        return str(int(result))
+ 
+    return str(round(result, 4))
+ 
+ 
+def process_one_expression(expression):
+    tokens = tokenize_expression(expression)
+ 
+    if tokens == "ERROR":
+        return "ERROR", "ERROR", "ERROR"
+ 
+    token_string = make_token_string(tokens)
+ 
+    tree, position = parse_addition_subtraction(tokens, 0)
+ 
+    if tree == "ERROR":
+        return "ERROR", token_string, "ERROR"
+ 
+    if position != len(tokens) - 1:
+        return "ERROR", token_string, "ERROR"
+ 
+    try:
+        result = calculate_tree(tree)
+    except:
+        result = "ERROR"
+ 
+    if result == "ERROR":
+        return make_tree_string(tree), token_string, "ERROR"
+ 
+    return make_tree_string(tree), token_string, result
+ 
+ 
+def write_output(file, expression, tree, tokens, result):
+    file.write("Input: " + expression + "\n")
+    file.write("Tree: " + tree + "\n")
+    file.write("Tokens: " + tokens + "\n")
+    file.write("Result: " + format_result(result) + "\n")
+    file.write("\n")
+ 
+ 
+def evaluate_file(input_path: str):
+    results = []
+ 
+    folder = os.path.dirname(input_path)
+    output_path = os.path.join(folder, "output.txt")
+ 
+    try:
+        with open(input_path, "r") as file:
+            expressions = file.readlines()
+    except:
+        print("Input file was not found.")
+        return results
+ 
+    with open(output_path, "w") as file:
+ 
+        for expression in expressions:
+            expression = expression.rstrip("\r\n")
+ 
+            tree, tokens, result = process_one_expression(expression)
+ 
+            results.append({
+                "input": expression,
+                "tree": tree,
+                "tokens": tokens,
+                "result": result
+            })
+ 
+            write_output(file, expression, tree, tokens, result)
+ 
+    return results
+ 
+ 
+if __name__ == "__main__":
+    evaluate_file("input.txt")
+   
+    print("Your Question 2: Expression Evaluation has been finished.")
